@@ -1,6 +1,7 @@
 module DeviseTokenAuth::Concerns::SetUserByToken
   extend ActiveSupport::Concern
-
+  include Devise::Controllers::Helpers
+  
   included do
     before_action :set_user_by_token
     after_action :update_auth_header
