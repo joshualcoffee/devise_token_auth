@@ -1,6 +1,7 @@
 module DeviseTokenAuth::Concerns::SetUserByToken
   extend ActiveSupport::Concern
   include Devise::Controllers::Helpers
+
   include Store
   # user auth
   def set_user_by_token
