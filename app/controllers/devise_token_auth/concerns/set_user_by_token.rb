@@ -1,11 +1,7 @@
 module DeviseTokenAuth::Concerns::SetUserByToken
   extend ActiveSupport::Concern
-
-  included do
-    before_action :set_user_by_token
-    after_action :update_auth_header
-  end
-
+  include Devise::Controllers::Helpers
+  include Store
   # user auth
   def set_user_by_token
     auth_header = request.headers["Authorization"]
@@ -24,21 +20,22 @@ module DeviseTokenAuth::Concerns::SetUserByToken
 
     if @user && @user.valid_token?(@client_id, token)
       sign_in(:user, @user, store: false, bypass: true)
+      Store::Redis.expire("#{@client_id}#{token}", '60')
     else
       @user = @current_user = nil
     end
   end
 
   def update_auth_header
-    if @user
+
+    if @user && @client_id
+      puts "changed"
       # update user's auth token (should happen on each request)
       token                    = SecureRandom.urlsafe_base64(nil, false)
       token_hash               = BCrypt::Password.create(token)
-      @user.tokens[@client_id] = {
-        token:  token_hash,
-        expiry: Time.now + 2.weeks
-      }
-      @user.save
+
+      Store::Redis.hmset("#{@client_id}#{token}", 'user_id', @user.id, 'token',token_hash)
+      Store::Redis.expire("#{@client_id}#{token}", '1200')
 
       # update Authorization response header with new token
       response.headers["Authorization"] = "token=#{token} client=#{@client_id} uid=#{@user.uid}"

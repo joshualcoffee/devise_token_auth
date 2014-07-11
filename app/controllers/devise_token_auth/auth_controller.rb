@@ -2,8 +2,9 @@ module DeviseTokenAuth
   class AuthController < DeviseTokenAuth::ApplicationController
     respond_to :json
     skip_after_filter :update_auth_header, :only => [:omniauth_success, :omniauth_failure]
-
+    include DeviseTokenAuth::Concerns::SetUserByToken
     def validate_token
+      set_user_by_token
       # @user will have been set by set_user_token concern
       if @user
         render json: {

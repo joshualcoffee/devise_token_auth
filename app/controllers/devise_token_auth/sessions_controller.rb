@@ -14,13 +14,11 @@ module DeviseTokenAuth
         # create client id
         @client_id = SecureRandom.urlsafe_base64(nil, false)
         @token     = SecureRandom.urlsafe_base64(nil, false)
+        token_hash = BCrypt::Password.create(@token)
 
-        @user.tokens[@client_id] = {
-          token: BCrypt::Password.create(@token),
-          expiry: Time.now + 2.weeks
-        }
-        @user.save
-
+        Store::Redis.hmset("#{@client_id}#{@token}", 'user_id', @user.id, 'token',token_hash)
+        Store::Redis.expire("#{@client_id}#{@token}", '1200')
+        update_auth_header
         render json: {
           success: true,
           data: @user.as_json
